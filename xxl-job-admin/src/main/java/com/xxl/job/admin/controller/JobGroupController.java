@@ -1,5 +1,7 @@
 package com.xxl.job.admin.controller;
 
+import com.xxl.job.admin.controller.annotation.PermissionLimit;
+import com.xxl.job.admin.core.conf.XxlJobAdminConfig;
 import com.xxl.job.admin.core.model.XxlJobGroup;
 import com.xxl.job.admin.core.model.XxlJobRegistry;
 import com.xxl.job.admin.core.util.I18nUtil;
@@ -8,8 +10,10 @@ import com.xxl.job.admin.dao.XxlJobInfoDao;
 import com.xxl.job.admin.dao.XxlJobRegistryDao;
 import com.xxl.job.core.biz.model.ReturnT;
 import com.xxl.job.core.enums.RegistryConfig;
+import com.xxl.job.core.util.XxlJobRemotingUtil;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -192,6 +196,19 @@ public class JobGroupController {
 	public ReturnT<XxlJobGroup> loadById(int id){
 		XxlJobGroup jobGroup = xxlJobGroupDao.load(id);
 		return jobGroup!=null?new ReturnT<XxlJobGroup>(jobGroup):new ReturnT<XxlJobGroup>(ReturnT.FAIL_CODE, null);
+	}
+
+	@RequestMapping("/getGroupId")
+	@ResponseBody
+	@PermissionLimit(limit = false)
+	public ReturnT<String> getGroupId(HttpServletRequest request, @RequestParam String appName) {
+		if (XxlJobAdminConfig.getAdminConfig().getAccessToken()!=null
+				&& XxlJobAdminConfig.getAdminConfig().getAccessToken().trim().length()>0
+				&& !XxlJobAdminConfig.getAdminConfig().getAccessToken().equals(request.getHeader(XxlJobRemotingUtil.XXL_JOB_ACCESS_TOKEN))) {
+			return new ReturnT<String>(ReturnT.FAIL_CODE, "The access token is wrong.");
+		}
+		XxlJobGroup group = xxlJobGroupDao.findByName(appName);
+		return new ReturnT<String>(String.valueOf(group.getId()));
 	}
 
 }

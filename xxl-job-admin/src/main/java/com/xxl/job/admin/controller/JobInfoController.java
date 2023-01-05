@@ -1,5 +1,7 @@
 package com.xxl.job.admin.controller;
 
+import com.xxl.job.admin.controller.annotation.PermissionLimit;
+import com.xxl.job.admin.core.conf.XxlJobAdminConfig;
 import com.xxl.job.admin.core.cron.CronExpression;
 import com.xxl.job.admin.core.exception.XxlJobException;
 import com.xxl.job.admin.core.model.XxlJobGroup;
@@ -19,10 +21,12 @@ import com.xxl.job.core.biz.model.ReturnT;
 import com.xxl.job.core.enums.ExecutorBlockStrategyEnum;
 import com.xxl.job.core.glue.GlueTypeEnum;
 import com.xxl.job.core.util.DateUtil;
+import com.xxl.job.core.util.XxlJobRemotingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -175,6 +179,79 @@ public class JobInfoController {
 		}
 		return new ReturnT<List<String>>(result);
 
+	}
+
+	/*------------------自定义方法----------------------  */
+	@RequestMapping("/addJob")
+	@ResponseBody
+	@PermissionLimit(limit = false)
+	public ReturnT<String> addJobInfo(HttpServletRequest request, @RequestBody XxlJobInfo jobInfo) {
+		if (!checkAccessToken(request)) {
+			return new ReturnT<String>(ReturnT.FAIL_CODE, "The access token is wrong.");
+		}
+		return xxlJobService.add(jobInfo);
+	}
+
+	@RequestMapping("/updateJob")
+	@ResponseBody
+	@PermissionLimit(limit = false)
+	public ReturnT<String> updateJobCron(HttpServletRequest request, @RequestBody XxlJobInfo jobInfo) {
+		if (!checkAccessToken(request)) {
+			return new ReturnT<String>(ReturnT.FAIL_CODE, "The access token is wrong.");
+		}
+		return xxlJobService.update(jobInfo);
+	}
+
+	@RequestMapping("/removeJob")
+	@ResponseBody
+	@PermissionLimit(limit = false)
+	public ReturnT<String> removeJob(HttpServletRequest request, @RequestBody XxlJobInfo jobInfo) {
+		if (!checkAccessToken(request)) {
+			return new ReturnT<String>(ReturnT.FAIL_CODE, "The access token is wrong.");
+		}
+		return xxlJobService.remove(jobInfo.getId());
+	}
+
+	@RequestMapping("/pauseJob")
+	@ResponseBody
+	@PermissionLimit(limit = false)
+	public ReturnT<String> pauseJob(HttpServletRequest request, @RequestBody XxlJobInfo jobInfo) {
+		if (!checkAccessToken(request)) {
+			return new ReturnT<String>(ReturnT.FAIL_CODE, "The access token is wrong.");
+		}
+		return xxlJobService.stop(jobInfo.getId());
+	}
+
+	@RequestMapping("/startJob")
+	@ResponseBody
+	@PermissionLimit(limit = false)
+	public ReturnT<String> startJob(HttpServletRequest request, @RequestBody XxlJobInfo jobInfo) {
+		if (!checkAccessToken(request)) {
+			return new ReturnT<String>(ReturnT.FAIL_CODE, "The access token is wrong.");
+		}
+		return xxlJobService.start(jobInfo.getId());
+	}
+
+	@RequestMapping("/addAndStart")
+	@ResponseBody
+	@PermissionLimit(limit = false)
+	public ReturnT<String> addAndStart(HttpServletRequest request, @RequestBody XxlJobInfo jobInfo) {
+		if (!checkAccessToken(request)) {
+			return new ReturnT<String>(ReturnT.FAIL_CODE, "The access token is wrong.");
+		}
+		ReturnT<String> result = xxlJobService.add(jobInfo);
+		int id = Integer.valueOf(result.getContent());
+		xxlJobService.start(id);
+		return result;
+	}
+
+	private boolean checkAccessToken(HttpServletRequest request) {
+		if (XxlJobAdminConfig.getAdminConfig().getAccessToken()!=null
+				&& XxlJobAdminConfig.getAdminConfig().getAccessToken().trim().length()>0
+				&& !XxlJobAdminConfig.getAdminConfig().getAccessToken().equals(request.getHeader(XxlJobRemotingUtil.XXL_JOB_ACCESS_TOKEN))) {
+			return false;
+		}
+		return true;
 	}
 	
 }
